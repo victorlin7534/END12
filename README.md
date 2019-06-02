@@ -1,3 +1,6 @@
 # Graphics Final Project
 ## Victor Lin
-## features:
+## Features:
+### 1) Opacity/transparency/fading
+2) Mesh
+3) Shading
