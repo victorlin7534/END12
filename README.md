@@ -1,1 +1,3 @@
-# END12
+# Graphics Final Project
+## Victor Lin
+## features:
