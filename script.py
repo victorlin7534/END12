@@ -1,5 +1,6 @@
 import mdl
 import sys
+from os import mkdir
 from display import *
 from matrix import *
 from draw import *
@@ -26,9 +27,9 @@ def first_pass( commands ):
     for command in commands:
         if command['op'] == 'frames':
             num_frames = command['args'][0]
-        elif command['op'] == 'basename':
+        if command['op'] == 'basename':
             name = command['args'][0]
-        elif command['op'] == 'vary':
+        if command['op'] == 'vary':
             vary = True
     if vary == True and num_frames == 1:
         sys.exit()
@@ -58,11 +59,12 @@ def second_pass( commands, num_frames ):
     frames = [ {} for i in range(int(num_frames)) ]
     for command in commands:
         if command['op'] == 'vary':
-            if command['args'][1] < 0 or command['args'][2] > num_frames:
+            if command['args'][0] < 0 or command['args'][1] > num_frames:
                 sys.exit()
             i = 0
-            for f in range(int(command['args'][1]),int(command['args'][2]+1)):
-                frames[f][command['args'][0]] = command['args'][3] + ((command['args'][4]/num_frames)*i)
+            a = (command['args'][3] - command['args'][2]) / (command['args'][1]- command['args'][0])
+            for f in range(int(command['args'][0]),int(command['args'][1])+1):
+                frames[f][command['knob']] = command['args'][2] + (a*i)
                 i += 1
     return frames
 
@@ -104,6 +106,11 @@ def run(filename):
 
     step_3d = 100
     mkdir('anim')
+    ctr = 0
+
+    shading = None
+    if 'shading' in symbols:
+        shading = symbols['shading'][1]
 
     for frame in frames:
         tmp = new_matrix()
@@ -116,27 +123,31 @@ def run(filename):
         consts = ''
         coords = []
         coords1 = []
-        ctr = 0
 
-        for symbol in symbols:
-            try:
-                frame[symbol]
-
+        for k in frame:
+        	symbols[k][1] = frame[k]
 
         for command in commands:
-            print command
             c = command['op']
             args = command['args']
             knob_value = 1
 
-            if c == 'box':
+            if c == 'mesh':
+                if command['constants']:
+                    reflect = command['constants']
+                add_obj(tmp,args[0])
+                matrix_mult(stack[-1],tmp)
+                draw_polygons(tmp,screen,zbuffer,view,ambient,light,symbols,reflect,shading)
+                tmp = []
+                reflect = '.white'
+            elif c == 'box':
                 if command['constants']:
                     reflect = command['constants']
                 add_box(tmp,
                         args[0], args[1], args[2],
                         args[3], args[4], args[5])
                 matrix_mult( stack[-1], tmp )
-                draw_polygons(tmp, screen, zbuffer, view, ambient, light, symbols, reflect)
+                draw_polygons(tmp, screen, zbuffer, view, ambient, light, symbols, reflect,shading)
                 tmp = []
                 reflect = '.white'
             elif c == 'sphere':
@@ -145,7 +156,7 @@ def run(filename):
                 add_sphere(tmp,
                            args[0], args[1], args[2], args[3], step_3d)
                 matrix_mult( stack[-1], tmp )
-                draw_polygons(tmp, screen, zbuffer, view, ambient, light, symbols, reflect)
+                draw_polygons(tmp, screen, zbuffer, view, ambient, light, symbols, reflect,shading)
                 tmp = []
                 reflect = '.white'
             elif c == 'torus':
@@ -154,7 +165,7 @@ def run(filename):
                 add_torus(tmp,
                           args[0], args[1], args[2], args[3], args[4], step_3d)
                 matrix_mult( stack[-1], tmp )
-                draw_polygons(tmp, screen, zbuffer, view, ambient, light, symbols, reflect)
+                draw_polygons(tmp, screen, zbuffer, view, ambient, light, symbols, reflect,shading)
                 tmp = []
                 reflect = '.white'
             elif c == 'line':
@@ -164,17 +175,23 @@ def run(filename):
                 draw_lines(tmp, screen, zbuffer, color)
                 tmp = []
             elif c == 'move':
-                tmp = make_translate(args[0], args[1], args[2])
+            	if command['knob']:
+            		knob_value = symbols[command['knob']][1]
+                tmp = make_translate(args[0]*knob_value, args[1]*knob_value, args[2]*knob_value)
                 matrix_mult(stack[-1], tmp)
                 stack[-1] = [x[:] for x in tmp]
                 tmp = []
             elif c == 'scale':
-                tmp = make_scale(args[0], args[1], args[2])
+            	if command['knob']:
+            		knob_value = symbols[command['knob']][1]
+                tmp = make_scale(args[0]*knob_value, args[1]*knob_value, args[2]*knob_value)
                 matrix_mult(stack[-1], tmp)
                 stack[-1] = [x[:] for x in tmp]
                 tmp = []
             elif c == 'rotate':
-                theta = args[1] * (math.pi/180)
+            	if command['knob']:
+            		knob_value = symbols[command['knob']][1]
+                theta = args[1] * (math.pi/180) *knob_value
                 if args[0] == 'x':
                     tmp = make_rotX(theta)
                 elif args[0] == 'y':
@@ -192,6 +209,6 @@ def run(filename):
                 display(screen)
             elif c == 'save':
                 save_extension(screen, args[0])
-
-        save_extension(screen,"anim/" + name + "%03d"%ctr)
+        save_extension(screen,"anim/" + name + '%03d'%ctr)
+        ctr += 1
     make_animation(name)

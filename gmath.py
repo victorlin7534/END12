@@ -89,7 +89,7 @@ def normalize(vector):
                            vector[1] * vector[1] +
                            vector[2] * vector[2])
     for i in range(3):
-        vector[i] = vector[i] / magnitude
+        vector[i] = vector[i] / magnitude if magnitude != 0 else 0
 
 #Return the dot porduct of a . b
 def dot_product(a, b):
@@ -116,3 +116,22 @@ def calculate_normal(polygons, i):
     N[2] = A[0] * B[1] - A[1] * B[0]
 
     return N
+
+def vec_add(v1,v2):
+    return [x+y for x,y in zip(v1,v2)]
+
+def vec_sub(v1,v2):
+    return [x-y for x,y in zip(v1,v2)]
+
+def shade(polygons):
+    vertex_normals = {}
+    for point in polygons:
+        vertex_normals[tuple(point)] = [0,0,0]
+    for i in range(0,len(polygons)-2,3):
+        norm = calculate_normal(polygons,i)
+        vertex_normals[tuple(polygons[i])] = vec_add(norm,vertex_normals[tuple(polygons[i])])
+        vertex_normals[tuple(polygons[i+1])] = vec_add(norm,vertex_normals[tuple(polygons[i+1])])
+        vertex_normals[tuple(polygons[i+2])] = vec_add(norm,vertex_normals[tuple(polygons[i+2])])
+    for normal in vertex_normals:
+        normalize(vertex_normals[normal])
+    return vertex_normals

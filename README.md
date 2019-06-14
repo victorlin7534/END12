@@ -1,6 +1,5 @@
 # Graphics Final Project
-## Victor Lin
+## Victor Lin Pd. 5
 ## Features:
-1) Opacity/transparency/fading
-2) Mesh
-3) Shading
+1) Mesh
+2) Shading
